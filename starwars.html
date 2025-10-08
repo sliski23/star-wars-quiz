@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Star Wars Quiz  </title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: black;
+      color: white;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    h1 {
+      color: yellow;
+      margin-bottom: 20px;
+    }
+    .score {
+      font-size: 1.2em;
+      font-weight: bold;
+      background: black;
+      border: 2px solid yellow;
+      display: inline-block;
+      padding: 10px 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      color: yellow;
+    }
+    .question {
+      margin: 20px 0;
+      font-size: 1.2em;
+      color: white;
+    }
+    .answers button {
+      margin: 6px;
+      padding: 10px 16px;
+      background: black;
+      color: white;
+      border: 2px solid yellow;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1em;
+    }
+    .answers button:hover {
+      background: #444;
+    }
+  </style>
+</head>
+<body>
+  <h1>Quiz Star Wars - Postacie</h1>
+  <div class="score">Wynik: <span id="score">0</span></div>
+  <div class="question" id="question">Ładowanie pytania...</div>
+  <div class="answers" id="answers"></div>
+
+<script>
+let score = 0;
+let questionCount = 0;
+const maxquestions = 10;
+
+function loadQuestion() {
+  if (questionCount >= maxquestions) {
+    document.getElementById("question").innerHTML = `Koniec quizu! Twój wynik: ${score} / ${maxquestions}`;
+    document.getElementById("answers").innerHTML = `
+      <button onclick="restartQuiz()">Zagraj ponownie</button>
+    `;
+    return;
+  }
+
+  const questionEl = document.getElementById("question");
+  const answersEl = document.getElementById("answers");
+  answersEl.innerHTML = "";
+
+  const id = Math.floor(Math.random() * 83) + 1; 
+
+  fetch(`https://swapi.dev/api/people/${id}/`)
+    .then(res => res.json())
+    .then(person => {
+      if (person.detail) {
+        loadQuestion();
+        return;
+      }
+
+      
+      const questionType = Math.floor(Math.random() * 3);
+      let questionText = "";
+      let correctAnswer = "";
+      let answers = [];
+
+      switch (questionType) {
+        case 0:
+          questionText = `Jakiego koloru oczy ma ${person.name}?`;
+          correctAnswer = person.eye_color;
+          answers = makeFakeAnswers(correctAnswer, ["blue", "brown", "green", "yellow", "red", "black", "hazel"]);
+          break;
+        case 1:
+          questionText = `W którym roku urodził się ${person.name}?`;
+          correctAnswer = person.birth_year;
+          answers = makeFakeYears(correctAnswer);
+          break;
+        case 2:
+          questionText = `Jakiego koloru włosy ma ${person.name}?`;
+          correctAnswer = person.hair_color;
+          answers = makeFakeAnswers(correctAnswer, ["blond", "brown", "black", "none", "white", "grey", "red"]);
+          break;
+      }
+
+      questionEl.innerHTML = questionText;
+      answers = [...new Set(answers)].sort(() => Math.random() - 0.5).slice(0, 4);
+
+      answers.forEach(ans => {
+        const btn = document.createElement("button");
+        btn.textContent = ans;
+        btn.onclick = () => {
+          if (ans.toLowerCase() === correctAnswer.toLowerCase()) {
+            score++;
+            document.getElementById("score").textContent = score;
+          }
+          questionCount++;
+          loadQuestion();
+        };
+        answersEl.appendChild(btn);
+      });
+    })
+    .catch(() => loadQuestion());
+}
+
+function makeFakeAnswers(correct, pool) {
+  const arr = [correct];
+  while (arr.length < 4) {
+    const fake = pool[Math.floor(Math.random() * pool.length)];
+    if (!arr.includes(fake)) arr.push(fake);
+  }
+  return arr;
+}
+
+function makeFakeYears(correct) {
+  const arr = [correct];
+  const base = parseInt(correct);
+  if (isNaN(base)) return ["19BBY", "41.9BBY", "unknown", "52BBY"];
+  while (arr.length < 4) {
+    const fake = `${Math.floor(Math.random() * 90) + 1}BBY`;
+    if (!arr.includes(fake)) arr.push(fake);
+  }
+  return arr;
+}
+
+function restartQuiz() {
+  score = 0;
+  questionCount = 0;
+  document.getElementById("score").textContent = "0";
+  loadQuestion();
+}
+
+loadQuestion();
+</script>
+</body>
+</html>
